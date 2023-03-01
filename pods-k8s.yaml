@@ -9,6 +9,6 @@ spec:
     - name: k8s-springboot-series
       image: dotiendat1751998/k8s-springboot-series:latest
       ports:
-        - containerPort: 8080
+        - containerPort: 8088
           name: http
   restartPolicy: Always
