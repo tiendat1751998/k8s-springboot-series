@@ -1,28 +1,45 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: k8s-java-springboot
+  name: courses-service
+  labels:
+    app: courses-service
 spec:
-  replicas: 1
   selector:
     matchLabels:
-      app: k8s-springboot-app
+      app: courses-service
+  replicas: 3
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
   template:
     metadata:
       labels:
-        app: k8s-springboot-app
+        app: courses-service
     spec:
       containers:
-        - name: k8s-java-springboot
+        - name: courses-service
           image: dotiendat1751998/k8s-springboot-series:latest
+          env:
+            - name: SERVER_PORT
+              value: "8082"
+            - name: MYSQL_URL
+              value: "jdbc:mariadb://mariadb:3306/courses"
+            - name: MYSQL_USERNAME
+              value: "mariadb"
+            - name: MYSQL_PASSWORD
+              value: "Adm1n123*"
+
+            # Cấu hình URI gọi đến Students service. Thường sẽ sử dụng DNS của service để cấu hình
+            # vì IP và port của service vẫn có thể thay đổi.
+#            - name: STUDENTS_URI
+#              value: http://10.152.183.232:80
           ports:
-            - name: http
-              containerPort: 8081
-              protocol: TCP
-          resources:
-            requests:
-              memory: "180Mi"
-              cpu: "10m"
+            - containerPort: 8082
+      restartPolicy: Always
+
 ---
 kind: Service
 apiVersion: v1
@@ -30,9 +47,9 @@ metadata:
   name: k8s-springboot
 spec:
   ports:
-    - name: http-8081
-      port: 8081
+    - name: http-8082
+      port: 8082
       protocol: TCP
-      targetPort: 8081
+      targetPort: 8082
   selector:
     app: k8s-springboot
