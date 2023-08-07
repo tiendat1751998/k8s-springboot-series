@@ -18,37 +18,114 @@ parent:
   id: java-springboot
   registryUrl: 'https://registry.devfile.io'
 components:
-  - name: image-build
-    image:
-      imageName: dotiendat1751998/k8s-springboot-series:latest
-      dockerfile:
-        uri: Dockerfile
-        buildContext: .
-        rootRequired: false
-  - name: kubernetes-deploy
-    attributes:
-      deployment/replicas: 1
-      deployment/cpuRequest: 10m
-      deployment/memoryRequest: 180Mi
-      deployment/container-port: 8081
-    kubernetes:
-      uri: deploy.yaml
-      endpoints:
-        - name: http-8082
-          targetPort: 8082
-          path: /
+#  - name: image-build
+#    image:
+#      imageName: dotiendat1751998/k8s-springboot-series:latest
+#      dockerfile:
+#        uri: Dockerfile
+#        buildContext: .
+#        rootRequired: false
+#  - name: kubernetes-deploy
+#    attributes:
+#      deployment/replicas: 1
+#      deployment/cpuRequest: 10m
+#      deployment/memoryRequest: 180Mi
+#      deployment/container-port: 8081
+#    kubernetes:
+#      uri: deploy.yaml
+#      endpoints:
+#        - name: http-8082
+#          targetPort: 8082
+#          path: /
+type: chePlugin
+  id: redhat/java/latest
+  memoryLimit: 1512Mi
+  -
+    type: dockerimage
+    alias: tools
+    image: dotiendat1751998/k8s-springboot-series:latest
+    env:
+      - name: MAVEN_CONFIG
+        value: ""
+      - name: JAVA_OPTS
+        value: "-XX:MaxRAMPercentage=50.0 -XX:+UseParallelGC -XX:MinHeapFreeRatio=10
+          -XX:MaxHeapFreeRatio=20 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90
+          -Dsun.zip.disableMemoryMapping=true -Xms20m -Djava.security.egd=file:/dev/./urandom
+          -Duser.home=/home/user"
+      - name: MAVEN_OPTS
+        value: $(JAVA_OPTS)
+      - name: SERVER_PORT
+        value: "8082"
+      - name: MYSQL_URL
+        value: "jdbc:mariadb://172.30.28.97:3306/courses"
+      - name: MYSQL_USERNAME
+        value: "mariadb"
+      - name: MYSQL_PASSWORD
+        value: "Adm1n123*"
+    memoryLimit: 768Mi
+    endpoints:
+      - name: '8082/tcp'
+        port: 8082
+    mountSources: true
+    volumes:
+      - name: m2
+        containerPath: /home/user/.m2
 commands:
-  - id: build-image
-    apply:
-      component: image-build
-  - id: deployk8s
-    apply:
-      component: kubernetes-deploy
-  - id: deploy
-    composite:
-      commands:
-        - build-image
-        - deployk8s
-      group:
-        kind: deploy
-        isDefault: true
+#  - id: build-image
+#    apply:
+#      component: image-build
+#  - id: deployk8s
+#    apply:
+#      component: kubernetes-deploy
+#  - id: deploy
+#    composite:
+#      commands:
+#        - build-image
+#        - deployk8s
+#      group:
+#        kind: deploy
+#        isDefault: true
+  name: maven build
+    actions:
+      -
+      type: exec
+      component: tools
+      command: "mvn clean install"
+      workdir: ${CHE_PROJECTS_ROOT}/web-java-spring-boot
+    - name: run webapp
+      actions:
+        -
+          type: exec
+          component: tools
+          command: "mvn spring-boot:run"
+          workdir: ${CHE_PROJECTS_ROOT}/web-java-spring-boot
+    - name: stop webapp
+      actions:
+        -
+          type: exec
+          component: tools
+          command: "echo 'Stopping the application...' && kill $(pidof java) && echo 'The application has been successfully stopped'"
+    - name: run webapp (debug mode)
+      actions:
+        -
+          type: exec
+          component: tools
+          command: |
+            java -jar -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005 \
+            target/*.jar
+          workdir: ${CHE_PROJECTS_ROOT}/web-java-spring-boot
+    - name: Debug remote java application
+      actions:
+        - type: vscode-launch
+          referenceContent: |
+            {
+            "version": "0.2.0",
+            "configurations": [
+              {
+                "type": "java",
+                "name": "Debug (Attach) - Remote",
+                "request": "attach",
+                "hostName": "localhost",
+                "port": 5005
+              }]
+            }
