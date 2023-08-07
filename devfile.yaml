@@ -3,7 +3,7 @@ metadata:
   name: java-springboot
   version: 1.2.1
   attributes:
-    alpha.dockerimage-port: 8081
+    alpha.dockerimage-port: 8082
   displayName: Spring Boot®
   description: Spring Boot® using Maven
   icon: https://raw.githubusercontent.com/devfile-samples/devfile-stack-icons/main/spring.svg
@@ -34,8 +34,8 @@ components:
     kubernetes:
       uri: deploy.yaml
       endpoints:
-        - name: http-8081
-          targetPort: 8081
+        - name: http-8082
+          targetPort: 8082
           path: /
 commands:
   - id: build-image
